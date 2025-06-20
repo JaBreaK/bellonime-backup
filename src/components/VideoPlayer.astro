@@ -1,0 +1,145 @@
+---
+interface Props {
+  anime: {
+    defaultStreamingUrl: string;
+    server: { qualities: Quality[] };
+  };
+}
+
+const { anime } = Astro.props;
+---
+
+<div class="space-y-4">
+  <!-- SELECT SERVER -->
+  <label for="server-select" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+    Pilih Server
+  </label>
+  <select
+    id="server-select"
+    class="bg-zinc-50 border border-zinc-300 text-zinc-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-700 dark:border-zinc-600 dark:placeholder-zinc-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+  >
+    <!-- Option default -->
+    <option value={anime.defaultStreamingUrl} selected>
+      Pilih Kualitas disini
+    </option>
+
+    <!-- Loop kualitas & serverList -->
+    {anime.server.qualities.map((quality) => {
+      if (quality.serverList && quality.serverList.length > 0) {
+        return (
+          <optgroup label={quality.title} key={quality.title}>
+            {quality.serverList.map((server) => (
+              <option value={server.serverId} key={server.serverId}>
+                {server.title}
+              </option>
+            ))}
+          </optgroup>
+        );
+      }
+      return null;
+    })}
+  </select>
+
+  <!-- VIDEO / IFRAME WRAPPER -->
+  <div
+    id="video-container"
+    class="relative flex justify-center items-center aspect-video bg-zinc-300 dark:bg-zinc-700 rounded-lg overflow-hidden"
+  >
+    <!-- Konten awal: cek defaultStreamingUrl -->
+    {anime.defaultStreamingUrl.toLowerCase() === "no iframe found" ? (
+      <h5 class="text-lg font-extrabold text-zinc-800 dark:text-zinc-200">
+        Server Tidak Tersedia
+      </h5>
+    ) : anime.defaultStreamingUrl.endsWith(".mp4") ? (
+      <video
+        id="video-player"
+        class="w-full h-full"
+        controls
+        src={anime.defaultStreamingUrl}
+      />
+    ) : (
+      <iframe
+        id="video-player"
+        class="w-full h-full"
+        src={anime.defaultStreamingUrl}
+        allowfullscreen
+      />
+    )}
+  </div>
+</div>
+
+<!-- SCRIPT CLIENT-SIDE -->
+<script is:client>
+  // Ambil elemen
+  const selectEl = document.getElementById("server-select");
+  const videoContainer = document.getElementById("video-container");
+
+  // Fungsi untuk membuat spinner loading
+  function showSpinner() {
+    videoContainer.innerHTML = `
+      <div class="flex items-center justify-center w-full h-full">
+        <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    `;
+  }
+
+  // Fungsi render video/iframe berdasarkan URL
+  function renderPlayer(src) {
+    if (!src || src.toLowerCase() === "no iframe found") {
+      videoContainer.innerHTML = `
+        <h5 class="text-lg font-extrabold text-zinc-800 dark:text-zinc-200">
+          Server Tidak Tersedia
+        </h5>
+      `;
+      return;
+    }
+
+    // Kalau .mp4 → video; selain itu → iframe
+    if (src.endsWith(".mp4")) {
+      videoContainer.innerHTML = `
+        <video
+          id="video-player"
+          class="w-full h-full"
+          controls
+          src="${src}"
+        ></video>
+      `;
+    } else {
+      videoContainer.innerHTML = `
+        <iframe
+          id="video-player"
+          class="w-full h-full"
+          src="${src}"
+          allowfullscreen
+        ></iframe>
+      `;
+    }
+  }
+
+  // Event listener perubahan server
+  selectEl.addEventListener("change", async (evt) => {
+    const selectedValue = evt.target.value;
+
+    // Jika pilih server bawaan (url langsung)
+    if (selectedValue === selectEl.options[0].value) {
+      renderPlayer(selectedValue);
+      return;
+    }
+
+    // Tampilkan spinner
+    showSpinner();
+
+    try {
+      // Fetch endpoint /api/server/:serverId
+      const res = await fetch(`/api/server/${selectedValue}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      const newUrl = data?.url || selectEl.options[0].value; // fallback ke default
+
+      renderPlayer(newUrl);
+    } catch (err) {
+      renderPlayer(null);
+    }
+  });
+</script>

@@ -1,0 +1,134 @@
+---
+import animeConfig from "@configs/animeConfig";
+import SearchIcon from "./icons/SearchIcon.astro";
+import MoonIcon from "./icons/MoonIcon.astro";
+import SunIcon from "./icons/SunIcon.astro";
+
+interface Props {
+  navLinks: {
+    title: string;
+    href: string;
+    icon: any;
+  }[];
+}
+
+const {
+  bellonime: { siteName, logo },
+} = animeConfig;
+const { navLinks } = Astro.props;
+let activeLink = Astro.url.pathname;
+---
+
+<!-- Outer wrapper: fixed full-width with backdrop blur and shadow -->
+<div class="fixed inset-x-0 top-0 z-50 backdrop-blur-md bg-white/60 dark:bg-zinc-900/60 shadow-md transition-colors duration-500">
+  <nav id="navbar" class="container mx-auto flex justify-between items-center px-6 py-3">
+    <!-- LEFT: Logo -->
+    <a href={Astro.url.origin} class="flex items-center space-x-3 transition-transform duration-300 hover:scale-105">
+      <img src={logo} class="w-8 h-auto" alt="Logo" />
+      <span class="text-xl font-bold dark:text-white hidden sm:inline-block">{siteName}</span>
+    </a>
+
+    <!-- CENTER: Navigation Links with sliding underline -->
+    <ul class="flex space-x-6">
+      {navLinks.map((link) => {
+        const isActive = link.href === activeLink;
+        return (
+          <li key={link.href} class="relative">
+            <a
+              href={link.href}
+              class={`flex items-center p-2 rounded-full transition-colors duration-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 ${isActive ? 'text-pink-600 dark:text-pink-400' : 'text-zinc-700 dark:text-zinc-300'}`}
+              aria-label={link.title}
+            >
+              <link.icon class="w-6 h-6" />
+            </a>
+            {/* Sliding underline */}
+            <span
+              class={`absolute bottom-0 left-1/2 h-0.5 w-0 bg-pink-600 dark:bg-pink-400 transition-all duration-300 ${isActive ? 'opacity-100 w-1/2 -translate-x-1/2' : 'opacity-0 w-0'}`}
+            ></span>
+          </li>
+        );
+      })}
+    </ul>
+
+    <!-- RIGHT: Search & Theme Toggle -->
+    <div class="flex items-center space-x-4">
+      <!-- Search -->
+      <div class="relative">
+        <button
+          id="navbar-button-search-main"
+          data-dropdown-toggle="dropdownSearch"
+          class="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-transform duration-200 transform hover:scale-110"
+          aria-label="Search"
+        >
+          <SearchIcon class="w-5 h-5 text-zinc-700 dark:text-zinc-200" />
+        </button>
+        <div
+          id="dropdownSearch"
+          class="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-800 rounded-lg shadow-lg p-4 opacity-0 scale-95 transform transition-all duration-200 pointer-events-none"
+        >
+          <form id="navbar-form-search" class="flex">
+            <input
+              type="search"
+              id="navbar-input-search"
+              class="flex-grow p-2 rounded-l-lg border border-zinc-300 focus:ring-pink-500 focus:border-pink-500 dark:bg-zinc-700 dark:border-zinc-600 dark:focus:border-pink-500"
+              placeholder="Cari Anime.."
+              required
+            />
+            <button
+              type="submit"
+              class="px-4 rounded-r-lg bg-pink-600 hover:bg-pink-700 focus:ring-2 focus:ring-pink-300 transition-colors duration-200"
+            >
+              <SearchIcon class="w-4 h-4 text-white" />
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Theme Toggle -->
+      <button
+        id="button-theme"
+        class="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-200"
+        aria-label="Toggle Theme"
+      >
+        <MoonIcon id="icon-moon" class="w-5 h-5 text-zinc-700 dark:hidden" />
+        <SunIcon id="icon-sun" class="w-5 h-5 text-pink-500 hidden dark:block" />
+      </button>
+    </div>
+  </nav>
+</div>
+
+<script>
+  function initTemaDanPencarian() {
+    const searchForm = document.getElementById("navbar-form-search");
+    const searchBtn = document.getElementById("navbar-button-search-main");
+    const dropdown = document.getElementById("dropdownSearch");
+
+    // Toggle dropdown with animation
+    if (searchBtn && dropdown) {
+      searchBtn.addEventListener("click", () => {
+        dropdown.classList.toggle("opacity-0");
+        dropdown.classList.toggle("pointer-events-none");
+        dropdown.classList.toggle("scale-95");
+        dropdown.classList.toggle("scale-100");
+        setTimeout(() => {
+          const input = document.querySelector("#navbar-input-search");
+          input?.focus();
+        }, 150);
+      });
+    }
+
+    // Submit search
+    searchForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = searchForm.querySelector("input");
+      if (input?.value) {
+        window.location.href = `/search?q=${encodeURIComponent(input.value)}`;
+      }
+    });
+
+    console.log("Navbar with animation ready!");
+  }
+
+  document.addEventListener("DOMContentLoaded", initTemaDanPencarian);
+  document.addEventListener("turbo:load", initTemaDanPencarian);
+</script>
